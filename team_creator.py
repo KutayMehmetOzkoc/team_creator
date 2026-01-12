@@ -5,7 +5,7 @@ from itertools import combinations
 
 def createRandomTeam(city_name):
     file_path = os.path.join(city_name.lower(), 'teams.txt')
-    roles = {'DF': [], 'MF': [], 'ST': []}
+    all_players = []
 
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -14,37 +14,44 @@ def createRandomTeam(city_name):
                 if len(parts) == 4:
                     name, point, role, status = parts
                     if status.upper() == 'O':
-                        roles[role.upper()].append({'name': name, 'point': float(point), 'role': role.upper()})
+                        all_players.append({
+                            'name': name,
+                            'point': float(point),
+                            'role': role.upper()
+                        })
     except FileNotFoundError:
+        print(f"Hata: {file_path} dosyası bulunamadı.")
         return None
 
-    def get_best_split(players, count_per_team):
-        all_combos = list(combinations(players, count_per_team))
-        best_diff = float('inf')
-        best_pair = ([], [])
+    if len(all_players) < 14:
+        print(f"Hata: Yetersiz oyuncu sayısı ({len(all_players)}). 14 oyuncu gerekli.")
+        return None
 
-        total_puan = sum(p['point'] for p in players)
+    squad = all_players[:14]
 
-        for combo in all_combos:
-            team1_puan = sum(p['point'] for p in combo)
-            team2_puan = total_puan - team1_puan
-            diff = abs(team1_puan - team2_puan)
+    all_possible_teams = list(combinations(squad, 7))
+    total_squad_point = sum(p['point'] for p in squad)
 
-            if diff < best_diff:
-                best_diff = diff
-                team2 = [p for p in players if p not in combo]
-                best_pair = (list(combo), team2)
+    best_diff = float('inf')
+    best_team1 = []
 
-        return best_pair
+    for combo in all_possible_teams:
+        team1 = list(combo)
+        team1_point = sum(p['point'] for p in team1)
+        team2_point = total_squad_point - team1_point
+        diff = abs(team1_point - team2_point)
 
-    df1, df2 = get_best_split(roles['DF'][:6], 3)
-    mf1, mf2 = get_best_split(roles['MF'][:4], 2)
-    st1, st2 = get_best_split(roles['ST'][:4], 2)
+        if diff < best_diff:
+            best_diff = diff
+            best_team1 = team1
+            if diff == 0: break
 
-    t1 = df1 + mf1 + st1
-    t2 = df2 + mf2 + st2
+    team2 = [p for p in squad if p not in best_team1]
 
-    return (t1, t2) if random.random() > 0.5 else (t2, t1)
+    if random.random() > 0.5:
+        return best_team1, team2
+    else:
+        return team2, best_team1
 
 
 def drawPitch(team_name, team):
@@ -62,20 +69,31 @@ def drawPitch(team_name, team):
     print("                 [ GK ]                ")
     print("  _____________________________________  ")
     print(" |                                     | ")
-    print(f" |  {f(dfs[0])} {f(dfs[1])} {f(dfs[2])}  | ")
+
+    df_line = " ".join([f(n) for n in dfs]).center(37)
+    print(f" |{df_line}| ")
+
     print(" |                                     | ")
-    print(f" |       {f(mfs[0])}   {f(mfs[1])}       | ")
+
+    mf_line = " ".join([f(n) for n in mfs]).center(37)
+    print(f" |{mf_line}| ")
+
     print(" |                  _                  | ")
     print(" |_________________( )_________________| ")
+
     print(" |                                     | ")
-    print(f" |       {f(sts[0])}   {f(sts[1])}       | ")
+
+    st_line = " ".join([f(n) for n in sts]).center(37)
+    print(f" |{st_line}| ")
+
     print(" |                                     | ")
     print(" |_____________________________________| ")
 
 
-city = input("Match Name: ").strip()
+# Main
+city = input("Match Name (Match Group Folder): ").strip()
 res = createRandomTeam(city)
 if res:
     t1, t2 = res
-    drawPitch("A Team", t1)
-    drawPitch("B Team", t2)
+    drawPitch("A TEAM", t1)
+    drawPitch("B TEAM", t2)
