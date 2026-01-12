@@ -1,57 +1,81 @@
 import random
 import os
+from itertools import combinations
 
-def createRandomTeam(file_name):
-    players = []
-    notplayers = []
+
+def createRandomTeam(city_name):
+    file_path = os.path.join(city_name.lower(), 'teams.txt')
+    roles = {'DF': [], 'MF': [], 'ST': []}
+
     try:
-        with open(file_name, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             for row in f:
                 parts = row.strip().split()
-                if len(parts) == 3:
-                    name, point, status = parts
+                if len(parts) == 4:
+                    name, point, role, status = parts
                     if status.upper() == 'O':
-                        players.append({'name': name, 'puan': float(point)})
-                    else :
-                        notplayers.append({'name': name, 'puan': float(point)})
+                        roles[role.upper()].append({'name': name, 'point': float(point), 'role': role.upper()})
     except FileNotFoundError:
-        print("File Not Found!")
         return None
 
-    if len(players) < 14:
-        print(f"Not Enough Player For Match: {len(players)}")
-        return None
+    def get_best_split(players, count_per_team):
+        all_combos = list(combinations(players, count_per_team))
+        best_diff = float('inf')
+        best_pair = ([], [])
 
-    squad = sorted(players[:14], key=lambda x: x['puan'], reverse=True)
-    squad1 = []
-    squad2 = []
+        total_puan = sum(p['point'] for p in players)
 
-    for i in range(0, 14, 2):
-        ikili = [squad[i], squad[i + 1]]
-        random.shuffle(ikili)
+        for combo in all_combos:
+            team1_puan = sum(p['point'] for p in combo)
+            team2_puan = total_puan - team1_puan
+            diff = abs(team1_puan - team2_puan)
 
-        squad1.append(ikili[0])
-        squad2.append(ikili[1])
+            if diff < best_diff:
+                best_diff = diff
+                team2 = [p for p in players if p not in combo]
+                best_pair = (list(combo), team2)
 
-    return squad1, squad2, notplayers
+        return best_pair
+
+    df1, df2 = get_best_split(roles['DF'][:6], 3)
+    mf1, mf2 = get_best_split(roles['MF'][:4], 2)
+    st1, st2 = get_best_split(roles['ST'][:4], 2)
+
+    t1 = df1 + mf1 + st1
+    t2 = df2 + mf2 + st2
+
+    return (t1, t2) if random.random() > 0.5 else (t2, t1)
 
 
-def printerFunction(team_name, team):
-    counter = 1
-    total_point = sum(o['puan'] for o in team)
-    print(f"\n--- {team_name} (Total Point: {total_point:.1f}) ---")
-    for o in team:
-        print(f"{counter}- {o['name']} ({o['puan']})")
-        counter += 1
+def drawPitch(team_name, team):
+    dfs = [o['name'] for o in team if o['role'] == 'DF']
+    mfs = [o['name'] for o in team if o['role'] == 'MF']
+    sts = [o['name'] for o in team if o['role'] == 'ST']
+    total_point = sum(o['point'] for o in team)
 
-#main
-matchName = input("Please enter match name: ").strip()
+    def f(name): return f"{name[:10]:^10}"
 
-file_path = os.path.join(matchName.lower(), 'teams.txt')
-res = createRandomTeam(file_path)
+    print(f"\n{'=' * 41}")
+    print(f"{team_name.center(41)}")
+    print(f"Total Team Point: {total_point:.1f}".center(41))
+    print(f"{'=' * 41}")
+    print("                 [ GK ]                ")
+    print("  _____________________________________  ")
+    print(" |                                     | ")
+    print(f" |  {f(dfs[0])} {f(dfs[1])} {f(dfs[2])}  | ")
+    print(" |                                     | ")
+    print(f" |       {f(mfs[0])}   {f(mfs[1])}       | ")
+    print(" |                  _                  | ")
+    print(" |_________________( )_________________| ")
+    print(" |                                     | ")
+    print(f" |       {f(sts[0])}   {f(sts[1])}       | ")
+    print(" |                                     | ")
+    print(" |_____________________________________| ")
 
+
+city = input("Match Name: ").strip()
+res = createRandomTeam(city)
 if res:
-    t1, t2, t3 = res
-    printerFunction("A TEAM", t1)
-    printerFunction("B TEAM", t2)
-    printerFunction("NOT IN GAME", t3)
+    t1, t2 = res
+    drawPitch("A Team", t1)
+    drawPitch("B Team", t2)
