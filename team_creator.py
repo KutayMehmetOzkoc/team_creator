@@ -37,10 +37,12 @@ def createRandomTeam(file_name):
 
 
 def printerFunction(team_name, team):
+    counter = 1
     total_point = sum(o['puan'] for o in team)
     print(f"\n--- {team_name} (Total Point: {total_point:.1f}) ---")
     for o in team:
-        print(f"- {o['name']} ({o['puan']})")
+        print(f"{counter}- {o['name']} ({o['puan']})")
+        counter += 1
 
 #main
 matchName = input("Please enter match name: ").strip()
