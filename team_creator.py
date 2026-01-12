@@ -1,4 +1,5 @@
 import random
+import os
 
 def createRandomTeam(file_name):
     players = []
@@ -42,7 +43,10 @@ def printerFunction(team_name, team):
         print(f"- {o['name']} ({o['puan']})")
 
 #main
-res = createRandomTeam('teams.txt')
+matchName = input("Please enter match name: ").strip()
+
+file_path = os.path.join(matchName.lower(), 'teams.txt')
+res = createRandomTeam(file_path)
 
 if res:
     t1, t2, t3 = res
