@@ -5,7 +5,8 @@ from itertools import combinations
 
 def createRandomTeam(city_name):
     file_path = os.path.join(city_name.lower(), 'teams.txt')
-    all_players = []
+    playing = []
+    not_playing = []
 
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -13,24 +14,25 @@ def createRandomTeam(city_name):
                 parts = row.strip().split()
                 if len(parts) == 4:
                     name, point, role, status = parts
+                    player_data = {'name': name, 'point': float(point), 'role': role.upper()}
+
                     if status.upper() == 'O':
-                        all_players.append({
-                            'name': name,
-                            'point': float(point),
-                            'role': role.upper()
-                        })
+                        playing.append(player_data)
+                    else:
+                        not_playing.append(player_data)
     except FileNotFoundError:
-        print(f"Hata: {file_path} dosyası bulunamadı.")
+        print(f"Hata: {file_path} bulunamadı.")
         return None
 
-    if len(all_players) < 14:
-        print(f"Hata: Yetersiz oyuncu sayısı ({len(all_players)}). 14 oyuncu gerekli.")
+    if len(playing) < 14:
+        print(f"Hata: Oynayacak (O) kişi sayısı yetersiz ({len(playing)}).")
         return None
 
-    squad = all_players[:14]
+    match_squad = playing[:14]
+    extras = playing[14:] + not_playing
 
-    all_possible_teams = list(combinations(squad, 7))
-    total_squad_point = sum(p['point'] for p in squad)
+    all_possible_teams = list(combinations(match_squad, 7))
+    total_squad_point = sum(p['point'] for p in match_squad)
 
     best_diff = float('inf')
     best_team1 = []
@@ -46,12 +48,10 @@ def createRandomTeam(city_name):
             best_team1 = team1
             if diff == 0: break
 
-    team2 = [p for p in squad if p not in best_team1]
+    team2 = [p for p in match_squad if p not in best_team1]
 
-    if random.random() > 0.5:
-        return best_team1, team2
-    else:
-        return team2, best_team1
+    t1, t2 = (best_team1, team2) if random.random() > 0.5 else (team2, best_team1)
+    return t1, t2, extras
 
 
 def drawPitch(team_name, team):
@@ -69,31 +69,35 @@ def drawPitch(team_name, team):
     print("                 [ GK ]                ")
     print("  _____________________________________  ")
     print(" |                                     | ")
-
     df_line = " ".join([f(n) for n in dfs]).center(37)
     print(f" |{df_line}| ")
-
     print(" |                                     | ")
-
     mf_line = " ".join([f(n) for n in mfs]).center(37)
     print(f" |{mf_line}| ")
-
     print(" |                  _                  | ")
     print(" |_________________( )_________________| ")
-
     print(" |                                     | ")
-
     st_line = " ".join([f(n) for n in sts]).center(37)
     print(f" |{st_line}| ")
-
     print(" |                                     | ")
     print(" |_____________________________________| ")
 
 
+def listExtras(extras):
+    if extras:
+        print(f"\n{'#' * 41}")
+        print(f"{'Out Of Match'.center(41)}")
+        print(f"{'#' * 41}")
+        for p in extras:
+            print(f"- {p['name']:<15} | Rol: {p['role']:<3} | Point: {p['point']}")
+        print(f"{'#' * 41}")
+
+
 # Main
-city = input("Match Name (Match Group Folder): ").strip()
+city = input("Match Name (City Folder): ").strip()
 res = createRandomTeam(city)
 if res:
-    t1, t2 = res
-    drawPitch("A TEAM", t1)
-    drawPitch("B TEAM", t2)
+    team_a, team_b, out_players = res
+    drawPitch("A TEAM", team_a)
+    drawPitch("B TEAM", team_b)
+    listExtras(out_players)
